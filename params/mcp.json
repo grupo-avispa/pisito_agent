@@ -1,0 +1,6 @@
+{
+    "rag-mcp": {
+        "url": "http://localhost:3002/mcp",
+        "transport": "streamable_http"
+    }
+}

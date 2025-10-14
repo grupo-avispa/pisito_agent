@@ -1,0 +1,5 @@
+langgraph_action_server:
+  ros__parameters:
+    action_name: "/langgraph_action"
+    mcp_servers: ""
+    system_prompt: ""
