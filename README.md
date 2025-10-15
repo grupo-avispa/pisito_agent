@@ -14,9 +14,6 @@ A ROS2 package implementing a conversational agent using Hugging Face LLMs with 
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
-- [MCP Integration](#mcp-integration)
-- [Examples](#examples)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Features
