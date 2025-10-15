@@ -1,5 +1,26 @@
-langgraph_action_server:
+hf_agent:
   ros__parameters:
-    action_name: "/langgraph_action"
-    mcp_servers: ""
-    system_prompt: ""
+    # Topic names
+    query_topic: "user_query"
+    response_topic: "llm_response"
+    
+    # MCP servers configuration file path
+    mcp_servers: "mcp.json"
+    
+    # System prompt template file path
+    system_prompt_file: "system_prompt.jinja"
+    
+    # LLM model name from Hugging Face
+    llm_model: "Qwen/Qwen2.5-0.5B-Instruct"
+    
+    # Use 8-bit quantization for the model
+    use_int8: true
+
+    # Tool call regex pattern to extract tool calls from LLM response
+    tool_call_pattern: "<tool_call>(.*?)</tool_call>"
+    
+    # LLM generation parameters
+    max_new_tokens: 512
+    top_k: 10
+    temperature: 0.1
+    repetition_penalty: 1.1

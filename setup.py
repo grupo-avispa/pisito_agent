@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 import os
 from glob import glob
-package_name = 'langgraph_ros'
+package_name = 'pisito_agent'
 
 setup(
     name=package_name,
@@ -11,9 +11,6 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('lib/' + package_name, [package_name + '/graph_functions.py']),
-        ('lib/' + package_name, [package_name + '/mongo_utils.py']),
-        ('share/' + package_name, ['.env']),
         (os.path.join('share', package_name, 'launch'),
             glob(os.path.join('launch', '*.launch.py'))),
         (os.path.join('share', package_name, 'templates'),
