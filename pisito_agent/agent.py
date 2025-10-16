@@ -9,12 +9,13 @@ import re
 import torch
 import json
 import asyncio
+from typing import Tuple
 
 # Transformer import for LLM interactions
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 # MCP client import for tool calling
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from fastmcp import Client
 
 # ROS2 imports for subscriber and publisher implementation
 import rclpy
@@ -42,8 +43,11 @@ class Agent(Node):
         # Retrieve ROS2 parameters (topic names, MCP servers, system prompt)
         self.get_params()
 
+        # Create event loop for asynchronous operations
+        self.loop = asyncio.new_event_loop()
+
         # Initialize the LLM object
-        self.initialize_llm()
+        self.loop.run_until_complete(self.initialize_llm())
 
         # Create the subscriber to listen for user queries
         self.group = ReentrantCallbackGroup()
@@ -59,7 +63,7 @@ class Agent(Node):
             self.response_topic,
             10,
             callback_group=self.group)
-        
+
         self.get_logger().info('Agent node initialized.')
     
     # ============= METHODS =============
@@ -89,13 +93,11 @@ class Agent(Node):
             messages, 
             tools=self.tools, 
             add_generation_prompt=True, 
-            return_dict=True, 
             return_tensors="pt"
         )
-        
+
         # Move inputs to the same device as the model
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-        
         # Generate the response using the LLM
         with torch.no_grad():
             llm_output = self.model.generate(
@@ -111,33 +113,48 @@ class Agent(Node):
                                          skip_special_tokens=False)
         # Post-process the response to extract tool call between <tool> tags if any
         response_msg = String()
-        response_msg.data = self.process_response(response)
+        response_msg.data = self.loop.run_until_complete(self.process_response(response))
         # Publish the response
         self.response_pub.publish(response_msg)
 
-    def process_response(self, response: str) -> None:
+    async def process_response(self, llm_response: str) -> str:
         """
         Process the LLM response to handle tool calls.
 
-        If the response contains a tool call, it extracts the tool name and parameters,
+        If the LLM response contains a tool call, it extracts the tool name and parameters,
         invokes the tool via the MCP client, and publishes the tool's output.
         If no tool call is present, it publishes the raw response.
 
         Parameters:
-            response (str): The raw response from the LLM.
+            llm_response (str): The raw response from the LLM.
         Returns:
-            None
+            str: The final response including LLM and tool outputs.
         """
+        # Default response if parsing fails
+        tool_response = ("Error parsing tool call, the resulting JSON must have 'name' " + 
+        "and 'parameters' fields. Also must be contained inside <tool_call> </tool_call> tags.")
+        parsed_response = llm_response.strip()
         # Post-process the response to extract tool call between <tool> tags if any
-        tool_call_match = re.search(self.tool_call_pattern, response, re.DOTALL)
+        tool_call_match = re.search(self.tool_call_pattern, llm_response, re.DOTALL)
         if tool_call_match:
-            self.get_logger().info(f'Parsed response with tool call:\n {tool_call_match.group(1).strip()}')
-            return tool_call_match.group(1).strip()
-        else:
-            self.get_logger().info(f'Not parsed response:\n {response.strip()}')
-            return response.strip()
+            parsed_response = tool_call_match.group(1).strip()
+            # Create JSON object from the parsed response
+            action = json.loads(parsed_response)
+            # Extract tool name and parameters
+            tool_name = action['name']
+            tool_params = action['arguments']
+            async with self.client:
+                try:
+                    tool_response = await self.client.call_tool(tool_name, 
+                                                                tool_params)
+                    tool_response = tool_response.content[0].text
+                except Exception as e:
+                    tool_response = f"Error executing tool '{tool_name}': {str(e)}"
+        final_response = f"- LLM response: {parsed_response}\n - Tool response: {tool_response}"
+        self.get_logger().info(f'Final response:\n {final_response}')
+        return final_response
 
-    def initialize_llm(self):
+    async def initialize_llm(self)-> None:
         """
         Initialize the LLM model and tokenizer.
 
@@ -180,26 +197,29 @@ class Agent(Node):
         # MCP servers configuration
         with open(self.mcp_servers, 'r') as f:
             mcp_servers_config = json.load(f)
+        print(mcp_servers_config)
 
         # Initialize MCP client for retrieving RAG and other tools
-        self.client = MultiServerMCPClient(mcp_servers_config)
+        self.client = Client(mcp_servers_config)
 
         # Retrieve available tools from MCP server
         self.tools = []
-        try:
-            tool_list = asyncio.run(self.client.get_tools())
-            self.get_logger().info(f'Successfully loaded {len(tool_list)} tools from MCP server')
-            # Convert list to JSON schema
-            for tool in tool_list:
-                schema = {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.args_schema
-                }
-                self.tools.append(schema)
-        except Exception as e:
-            self.get_logger().info(f'WARNING: Failed to connect to MCP server: {str(e)}')
-            self.get_logger().info('Continuing with no tools available')
+        async with self.client:
+            try:
+                tool_list = await self.client.list_tools()
+                self.get_logger().info(f'Successfully loaded {len(tool_list)} tools from MCP server')
+                # Convert list to JSON schema
+                for tool in tool_list:
+                    schema = {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "inputSchema": tool.inputSchema,
+                        "outputSchema": tool.outputSchema
+                    }
+                    self.tools.append(schema)
+            except Exception as e:
+                self.get_logger().info(f'WARNING: Failed to connect to MCP server: {str(e)}')
+                self.get_logger().info('Continuing with no tools available')
 
 
     def get_params(self) -> None:
