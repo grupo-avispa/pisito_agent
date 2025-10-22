@@ -5,17 +5,15 @@ The agent's behavior is configurable via ROS2 parameters.
 """
 
 # General imports 
-import re
-import torch
 import json
-import asyncio
 from typing import Tuple
 
 # Transformer import for LLM interactions
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from smolagents import MCPClient
 
-# MCP client import for tool calling
-from fastmcp import Client
+# Import for customm model and agent objects
+from custom_model import QuantModel
+from custom_agent import CustomAgent
 
 # ROS2 imports for subscriber and publisher implementation
 import rclpy
@@ -26,12 +24,12 @@ from std_msgs.msg import String
 
 # ============= ROS2 NODE =============
 
-class Agent(Node):
+class RosAgent(Node):
     # ============= INITIALIZATION =============
 
     def __init__(self):
         """
-        Initialize the Agent node.
+        Initialize the RosAgent node.
 
         Sets up the ROS2 node, retrieves parameters, initializes the
         LLM object, and creates the subscriber and publisher.
@@ -43,11 +41,8 @@ class Agent(Node):
         # Retrieve ROS2 parameters (topic names, MCP servers, system prompt)
         self.get_params()
 
-        # Create event loop for asynchronous operations
-        self.loop = asyncio.new_event_loop()
-
         # Initialize the LLM object
-        self.loop.run_until_complete(self.initialize_llm())
+        self.initialize_llm()
 
         # Create the subscriber to listen for user queries
         self.group = ReentrantCallbackGroup()
@@ -64,7 +59,7 @@ class Agent(Node):
             10,
             callback_group=self.group)
 
-        self.get_logger().info('Agent node initialized.')
+        self.get_logger().info('RosAgent node initialized.')
     
     # ============= METHODS =============
 
@@ -72,7 +67,7 @@ class Agent(Node):
         """
         Callback function for processing user queries.
 
-        Receives a user query message, processes it using the LLM,
+        Receives a user query message, processes it using the agent,
         and publishes the generated response.
 
         Parameters:
@@ -83,143 +78,71 @@ class Agent(Node):
         user_query = msg.data
         self.get_logger().info(f'Received user query: {user_query}')
 
-        # Prepare the messages for the LLM
-        messages = [
-            {"role": "system", "content": self.sys_prompt},
-            {"role": "user", "content": user_query}
-        ]
-        # Prepare the chat template with tools, system prompt and user query
-        inputs = self.tokenizer.apply_chat_template(
-            messages, 
-            tools=self.tools, 
-            add_generation_prompt=True, 
-            return_tensors="pt"
-        )
-
-        # Move inputs to the same device as the model
-        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-        # Generate the response using the LLM
-        with torch.no_grad():
-            llm_output = self.model.generate(
-                **inputs,
-                max_new_tokens=self.max_new_tokens,
-                do_sample=True,
-                top_k=self.top_k,
-                temperature=self.temperature,
-                repetition_penalty=self.repetition_penalty,
-                pad_token_id=self.tokenizer.eos_token_id
-            )
-        response = self.tokenizer.decode(llm_output[0][len(inputs["input_ids"][0]):], 
-                                         skip_special_tokens=False)
-        # Post-process the response to extract tool call between <tool> tags if any
+        # Call the agent to process the query and generate a response
+        result = self.agent.run(user_query, max_steps=self.max_steps)
+        # Proces result for pretty string output
+        steps_summary = f"User query:{user_query}\n"
+        if self.return_full_result:
+            for step in result.steps:
+                steps_summary += (
+                    "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Step {step.get('step_number', '')}\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Model output:\n{step.get('model_output', '')}\n\n"
+                    f"Tool calls:\n{step.get('tool_calls', [])}\n\n"
+                    f"Observations:\n{step.get('observations', [])}\n"
+                )
+            steps_summary += f"Final Answer:\n{result.output}\n"
+        else:
+            steps_summary += f"Final Answer:\n{result}\n"
         response_msg = String()
-        response_msg.data = self.loop.run_until_complete(self.process_response(response))
+        response_msg.data = steps_summary
         # Publish the response
         self.response_pub.publish(response_msg)
+        self.get_logger().info(f'Published agent response.')
 
-    async def process_response(self, llm_response: str) -> str:
+    def initialize_llm(self)-> None:
         """
-        Process the LLM response to handle tool calls.
-
-        If the LLM response contains a tool call, it extracts the tool name and parameters,
-        invokes the tool via the MCP client, and publishes the tool's output.
-        If no tool call is present, it publishes the raw response.
-
-        Parameters:
-            llm_response (str): The raw response from the LLM.
-        Returns:
-            str: The final response including LLM and tool outputs.
-        """
-        # Default response if parsing fails
-        tool_response = ("Error parsing tool call, the resulting JSON must have 'name' " + 
-        "and 'parameters' fields. Also must be contained inside <tool_call> </tool_call> tags.")
-        parsed_response = llm_response.strip()
-        # Post-process the response to extract tool call between <tool> tags if any
-        tool_call_match = re.search(self.tool_call_pattern, llm_response, re.DOTALL)
-        if tool_call_match:
-            parsed_response = tool_call_match.group(1).strip()
-            # Create JSON object from the parsed response
-            action = json.loads(parsed_response)
-            # Extract tool name and parameters
-            tool_name = action['name']
-            tool_params = action['arguments']
-            async with self.client:
-                try:
-                    tool_response = await self.client.call_tool(tool_name, 
-                                                                tool_params)
-                    tool_response = tool_response.content[0].text
-                except Exception as e:
-                    tool_response = f"Error executing tool '{tool_name}': {str(e)}"
-        final_response = f"- LLM response: {parsed_response}\n - Tool response: {tool_response}"
-        self.get_logger().info(f'Final response:\n {final_response}')
-        return final_response
-
-    async def initialize_llm(self)-> None:
-        """
-        Initialize the LLM model and tokenizer.
-
-        Loads the specified LLM model and tokenizer using the transformers library.
-        Configures the model for efficient inference.
+        Initialize the LLM model and ReAct agent.
+        Also initializes the MCP client and retrieves available tools.
 
         Parameters:
             None
         Returns:
             None
         """
-        
-        # Load the tokenizer and model from the specified LLM model name
-        self.tokenizer = AutoTokenizer.from_pretrained(self.llm_model, use_fast=True)
-        # Load model with 8-bit quantization if specified
-        if self.use_int8:
-            quantization_config = BitsAndBytesConfig(
-                load_in_8bit=True,
-                bnb_8bit_quant_type="nf4",
-                bnb_8bit_compute_type=torch.float16
+        tools = []
+        try:
+            with open(self.mcp_servers, 'r') as f:
+                server_parameters = json.load(f)
+            mcp_client = MCPClient(server_parameters)
+            tools = mcp_client.get_tools()
+            self.get_logger().info(f'Successfully loaded {len(tools)} tools from MCP server')
+        except Exception as e:
+            self.get_logger().error(f'Error initializing tools: {str(e)}')
+            self.get_logger().warning('Continuing with no tools available')
+            
+        # Use the tools with your agent
+        model = QuantModel(
+                model_id=self.llm_model,
+                tools=tools,  
+                tool_call_pattern=self.tool_call_pattern,
+                max_new_tokens=self.max_new_tokens,
+                temperature=self.temperature,
+                top_k=self.top_k,
+                repetition_penalty=self.repetition_penalty,
+                load_in_8bit=self.use_int8,
+                do_sample=self.do_sample
             )
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.llm_model,
-                quantization_config=quantization_config,
-                device_map="auto"
-            )
-            self.get_logger().info(f'LLM model {self.llm_model} loaded in 8 bit quantization.')
-        else:
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.llm_model,
-                device_map="auto",
-                torch_dtype=torch.float16
-            )
-            self.get_logger().info(f'LLM model {self.llm_model} loaded.')
-        
-        # Set system prompt
-        with open(self.system_prompt_file, 'r') as f:
-            self.sys_prompt = f.read()
 
-        # MCP servers configuration
-        with open(self.mcp_servers, 'r') as f:
-            mcp_servers_config = json.load(f)
-        print(mcp_servers_config)
-
-        # Initialize MCP client for retrieving RAG and other tools
-        self.client = Client(mcp_servers_config)
-
-        # Retrieve available tools from MCP server
-        self.tools = []
-        async with self.client:
-            try:
-                tool_list = await self.client.list_tools()
-                self.get_logger().info(f'Successfully loaded {len(tool_list)} tools from MCP server')
-                # Convert list to JSON schema
-                for tool in tool_list:
-                    schema = {
-                        "name": tool.name,
-                        "description": tool.description,
-                        "inputSchema": tool.inputSchema,
-                        "outputSchema": tool.outputSchema
-                    }
-                    self.tools.append(schema)
-            except Exception as e:
-                self.get_logger().info(f'WARNING: Failed to connect to MCP server: {str(e)}')
-                self.get_logger().info('Continuing with no tools available')
+        self.agent = CustomAgent(
+            tools=tools,  
+            model=model,
+            sys_prompt_file=self.system_prompt_file,
+            max_steps=self.max_steps,
+            return_full_result=self.return_full_result
+        )
+        self.get_logger().info(f'Successfully initialized LLM model and ReAct agent.')
 
 
     def get_params(self) -> None:
@@ -284,7 +207,7 @@ class Agent(Node):
             f'The parameter use_int8 is set to: [{self.use_int8}]')
         
         # Declare and retrieve LLM generation parameters
-        self.declare_parameter('max_new_tokens', 512)
+        self.declare_parameter('max_new_tokens', 256)
         self.max_new_tokens = self.get_parameter(
             'max_new_tokens').get_parameter_value().integer_value
         self.get_logger().info(
@@ -307,6 +230,24 @@ class Agent(Node):
             'repetition_penalty').get_parameter_value().double_value
         self.get_logger().info(
             f'The parameter repetition_penalty is set to: [{self.repetition_penalty}]')
+        
+        self.declare_parameter('do_sample', True)
+        self.do_sample = self.get_parameter(
+            'do_sample').get_parameter_value().bool_value
+        self.get_logger().info(
+            f'The parameter do_sample is set to: [{self.do_sample}]')
+        
+        self.declare_parameter('return_full_result', False)
+        self.return_full_result = self.get_parameter(
+            'return_full_result').get_parameter_value().bool_value
+        self.get_logger().info(
+            f'The parameter return_full_result is set to: [{self.return_full_result}]')
+        
+        self.declare_parameter('max_steps', 5)
+        self.max_steps = self.get_parameter(
+            'max_steps').get_parameter_value().integer_value
+        self.get_logger().info(
+            f'The parameter max_steps is set to: [{self.max_steps}]')
 
 
 def main(args=None) -> None:
@@ -326,7 +267,7 @@ def main(args=None) -> None:
     
     try:
         # Create the agent node
-        agent = Agent()
+        agent = RosAgent()
 
         # Use a MultiThreadedExecutor to allow concurrent callback execution
         executor = MultiThreadedExecutor()

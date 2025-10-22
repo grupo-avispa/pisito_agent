@@ -10,6 +10,8 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
+        ('lib/' + package_name, [package_name + '/custom_agent.py']),
+        ('lib/' + package_name, [package_name + '/custom_model.py']),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'),
             glob(os.path.join('launch', '*.launch.py'))),
@@ -27,7 +29,7 @@ setup(
     zip_safe=False,
     maintainer='Oscar Pons Fernandez',
     maintainer_email='opfernandez@uma.es',
-    description='ROS2 huggingface agent',
+    description='ROS2 smolagents agent',
     license='Apache License 2.0',
     extras_require={
         'test': [
