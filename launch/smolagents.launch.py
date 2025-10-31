@@ -18,7 +18,7 @@ def generate_launch_description():
     # Getting directories and launch-files
     hf_agent_ros_dir = get_package_share_directory('pisito_agent')
     default_params_file = os.path.join(hf_agent_ros_dir, 'params', 'default_params.yaml')
-    default_mcp_servers_file = os.path.join(hf_agent_ros_dir, 'params', 'mcp.json')
+    default_mcp_servers_file = os.path.join(hf_agent_ros_dir, 'params', 'smolagents_mcp.json')
     default_sys_prompt_file = os.path.join(hf_agent_ros_dir, 'templates', 'system_prompt.jinja')
 
     # Input parameters declaration
@@ -67,7 +67,7 @@ def generate_launch_description():
     # Prepare the detection node.
     hf_agent_ros_node = Node(
         package='pisito_agent',
-        executable='agent',
+        executable='smolagent_ros_agent',
         name='hf_agent',
         output='screen',
         prefix=[venv_python, ' -u '],
