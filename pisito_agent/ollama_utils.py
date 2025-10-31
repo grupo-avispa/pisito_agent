@@ -53,7 +53,7 @@ class Ollama:
                  top_p: float = 0.25,
                  num_ctx: int = 8192,
                  num_predict: int = 256,
-                 jinja_remplate_path: str = '',
+                 jinja_template_path: str = '',
                  system_prompt: str = 'You are a helpful assistant.',
                  debug: bool = False):
         '''
@@ -76,7 +76,7 @@ class Ollama:
         raw         :   bool
             if true no formatting will be applied to the prompt. You may choose to use the raw 
             parameter if you are specifying a full templated prompt in your request to the API
-        jinja_remplate_path : str
+        jinja_template_path : str
             the jinja template file path to use for prompt formatting.
         system_prompt : str
             the system prompt to use.
@@ -105,8 +105,8 @@ class Ollama:
         self.mcp_client = mcp_client
 
         # Load Jinja2 template if raw mode is enabled
-        if raw and jinja_remplate_path != '':
-            with open(jinja_remplate_path, 'r') as f:
+        if raw and jinja_template_path != '':
+            with open(jinja_template_path, 'r') as f:
                 template_content = f.read()
                 self.template = Template(template_content)
         else:
@@ -365,7 +365,7 @@ class Ollama:
 #             think=False,
 #             raw=True,
 #             temperature=0.0,
-#             jinja_remplate_path='../templates/qwen3.jinja',
+#             jinja_template_path='../templates/qwen3.jinja',
 #             system_prompt=system_prompt,
 #             debug=True
 #         )

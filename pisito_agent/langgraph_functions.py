@@ -113,10 +113,11 @@ class LangGraphManager:
 
         # Check if the last message contains a tool call
         if state['messages'] and state['messages'][-1]['role'] == 'tool':
-            for msg in state['messages'][self.messages_count:]:
-                self._log(f"Message Role:\n{msg['role']}\nContent:\n{msg['content']}\n" + 
-                          f"Reasoning:\n{msg['reasoning_content']}\nTool Calls:\n{msg['tool_calls']}")
-            if self.steps <= self.max_steps:
+            # for msg in state['messages'][self.messages_count:]:
+            #     self._log("--"*30)
+            #     self._log(f"\nMessage Role:\n{msg['role']}\nContent:\n{msg['content']}\n" + 
+            #               f"Reasoning:\n{msg['reasoning_content']}\nTool Calls:\n{msg['tool_calls']}")
+            if self.steps < self.max_steps:
                 uc = 'agent'
             else:
                 self._log("Maximum steps reached, finishing interaction.")
