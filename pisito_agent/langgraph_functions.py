@@ -1,15 +1,11 @@
-"""LangGraph ROS integration functions for conversational AI with user profiling.
-
-This module provides the core functionality for a LangGraph-based conversational
-AI system integrated with ROS2. It includes user profile management via MongoDB,
-LLM integration using Ollama, and conversation summarization capabilities.
+"""
+LangGraph manager for agent flow control.
 """
 
 import time
 import logging
 from langgraph.graph import START, StateGraph, END
 from langsmith import traceable
-from fastmcp import Client
 from pisito_agent.ollama_utils import Ollama, Messages
 
 class LangGraphManager:
@@ -17,17 +13,23 @@ class LangGraphManager:
     Manager class for LangGraph-based conversational AI.
 
     This class encapsulates all functionality for the LangGraph workflow,
-    including LLM initialization, tool management, graph creation, and
-    conversation handling. Eliminates global variables by using instance
-    attributes.
-
+    including LLM response generation, step management, and interaction finalization.
     Attributes:
-        llm (ChatOllama): Local LLM instance for inference.
-        template: Jinja2 template for system prompts.
-        tools (list): Available tools for the LLM to invoke.
-        client (MultiServerMCPClient): MCP client for tool retrieval.
-        graph: Compiled LangGraph workflow.
-        logger: Optional ROS2 logger for logging.
+        graph (StateGraph): The compiled LangGraph workflow.
+        logger: Optional ROS2 logger for logging messages.
+        ollama_agent (Ollama): Instance of the Ollama agent for LLM interactions.
+        steps (int): Counter for the number of steps taken in the conversation.
+        messages_count (int): Counter for the number of messages exchanged.
+        max_steps (int): Maximum allowed steps before finishing interaction.
+    Methods:
+        query_response(state: Messages) -> Messages:
+            Generates LLM response based on conversation state.
+        manage_steps(state: Messages) -> str:
+            Determines the next step in the conversation flow.
+        finish_ollama_interaction(state: Messages) -> Messages:
+            Finalizes the Ollama interaction and returns the final response.
+        make_graph() -> None:
+            Initializes and compiles the LangGraph workflow.
     """
 
     def __init__(self,
@@ -194,6 +196,8 @@ class LangGraphManager:
 #       - If want to inspect traces export your LANGGRAPH_SMITH_API_KEY and LANGCHAIN_TRACING_V2=true env variables.
 
 # async def main():
+#     from fastmcp import Client
+
 #     mcp_config = {
 #         "mcpServers": {
 #             "fake_mcp_server": {"url": "http://localhost:3002/mcp"}
@@ -225,7 +229,7 @@ class LangGraphManager:
 #             think=False,
 #             raw=True,
 #             temperature=0.0,
-#             jinja_remplate_path='../templates/qwen3.jinja',
+#             jinja_template_path='../templates/qwen3.jinja',
 #             system_prompt=system_prompt,
 #             debug=True
 #         )
@@ -260,4 +264,3 @@ class LangGraphManager:
 #     import asyncio
 
 #     asyncio.run(main())
-    
