@@ -12,8 +12,8 @@ from typing import Tuple
 from smolagents import MCPClient
 
 # Import for customm model and agent objects
-from custom_model import QuantModel
-from custom_agent import CustomAgent
+from smolagent_custom_model import QuantModel
+from smolagent_custom_agent import CustomAgent
 
 # ROS2 imports for subscriber and publisher implementation
 import rclpy
@@ -132,7 +132,8 @@ class RosAgent(Node):
                 top_k=self.top_k,
                 repetition_penalty=self.repetition_penalty,
                 load_in_8bit=self.use_int8,
-                do_sample=self.do_sample
+                do_sample=self.do_sample,
+                enable_thinking=self.enable_thinking
             )
 
         self.agent = CustomAgent(
@@ -248,6 +249,12 @@ class RosAgent(Node):
             'max_steps').get_parameter_value().integer_value
         self.get_logger().info(
             f'The parameter max_steps is set to: [{self.max_steps}]')
+        
+        self.declare_parameter('enable_thinking', False)
+        self.enable_thinking = self.get_parameter(
+            'enable_thinking').get_parameter_value().bool_value
+        self.get_logger().info(
+            f'The parameter enable_thinking is set to: [{self.enable_thinking}]')
 
 
 def main(args=None) -> None:
