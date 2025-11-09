@@ -1,33 +1,33 @@
 # Core dependencies for LangGraph option
 langgraph==0.6.7
-langgraph-checkpoint==2.1.1
 fastmcp==2.12.3
 ollama==0.6.0
 python-dotenv==1.1.1
+langchain
+langchain-chroma
+langchain-classic
+langchain-community
+langchain-core
+langchain-huggingface
+langchain-mcp-adapters
+langchain-ollama
+langchain-text-splitters
+langgraph-api
+langgraph-cli
+langgraph-prebuilt
+langgraph-runtime-inmem
+langgraph-sdk
 
 # Core dependencies for SmoLAgents option
 smolagents==1.22.0
 transformers==4.56.2
-torch==2.9.0+cu128
 accelerate==1.10.1
 bitsandbytes==0.48.1
+smolagents[mcp]
 
 # Common dependencies
 Jinja2==3.1.4
-huggingface-hub==0.35.3
-jsonschema==4.25.1
-langchain==0.3.27
-langchain-chroma==0.2.6
-langchain-classic==1.0.0
-langchain-community==0.4
-langchain-core==1.0.0
-langchain-huggingface==0.3.1
-langchain-mcp-adapters==0.1.9
-langchain-ollama==0.3.8
-langchain-text-splitters==1.0.0
-langgraph-api==0.4.35
-langgraph-cli==0.4.2
-langgraph-prebuilt==0.6.4
-langgraph-runtime-inmem==0.14.1
-langgraph-sdk==0.2.9
+dotenv
+huggingface-hub
+jsonschema
 mcp==1.16.0
