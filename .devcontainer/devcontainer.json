@@ -1,0 +1,32 @@
+{
+  "name": "PisitoAgent-ROS2-Dev",
+  "dockerComposeFile": "../Docker/docker-compose.yml",
+  "service": "pisito_agent",
+  "overrideCommand": false,
+  "workspaceFolder": "/ros2_ws",
+  "shutdownAction": "stopCompose",
+  "runServices": ["pisito_agent"],
+  "remoteUser": "root",
+
+  "extensions": [
+    "ms-python.python",
+    "ms-vscode.cpptools",
+    "redhat.vscode-yaml",
+		"vscode-icons-team.vscode-icons"
+  ],
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "python.defaultInterpreterPath": "/venv/bin/python",
+    "editor.fontSize": 14,
+    "editor.formatOnSave": false,
+    "workbench.colorTheme": "Default Dark+",
+    "workbench.iconTheme": "material-icon-theme",
+    "editor.tokenColorCustomizations": {
+        "comments": "#616060",
+        "variables": "#fa2359",
+        "types": "#cc00ff",
+        "keywords": "#eeff00",
+        "numbers": "#da5000",
+      }
+  }
+}
