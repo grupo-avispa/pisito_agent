@@ -1,0 +1,22 @@
+services:
+  pisito_agent:
+    build:
+      context: ../
+      dockerfile: ./Docker/Dockerfile
+    container_name: pisito_agent_container
+    image: pisito_agent:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - ROS_DOMAIN_ID=11
+    volumes:
+      - ../:/ros2_ws/src/pisito_agent  # Mount the entire pisito_agent package
+    working_dir: /ros2_ws
+    network_mode: "host"
+    tty: true
+    stdin_open: true
