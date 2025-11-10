@@ -55,6 +55,8 @@ pisito_agent/
 
 ## Prerequisites
 
+### Option A: Native Installation
+
 1. **Ollama installed and running** (optional, for LangGraph flow):
    ```bash
    # Install Ollama (if not installed)
@@ -72,7 +74,12 @@ pisito_agent/
    - Server must implement the MCP protocol correctly
 
 3. **Python virtual environment** with dependencies:
-   Ensure your python vitrual enviroment is sourced in the current terminal.
+   Ensure your python vitrual enviroment is sourced in the current terminal and dependences have been installed.
+   ```bash
+    python -m venv agent-venv
+    source agent-venv/bin/activate
+    pip install -r requirements.txt
+    ```
 
 4. **Environment variables** (optional, for LangSmith tracing):
    Edit the `.env` file in the package:
@@ -81,12 +88,7 @@ pisito_agent/
    LANGSMITH_TRACING=true
    LANGSMITH_PROJECT=project_name
    ```
-5. **Virtual environment**:
-    ```bash
-    python -m venv agent-venv
-    source agent-venv/bin/activate
-    pip install -r requirements.txt
-    ```
+    
 6. **Building**:
     ```bash
     cd ~/colcon_ws
@@ -95,7 +97,18 @@ pisito_agent/
     source install/setup.bash
     ```
 
+### Option B: Docker Installation
+Alternatively, you can run the agent using Docker, which includes all dependencies pre-configured.
 
+1. **Build Docker image**:
+   ```bash
+   cd ~/colcon_ws/src/interaction/pisito_agent/Docker
+   docker compose build
+   ```
+2. **Run with VsCode Dev Containers**:
+   - Open the `pisito_agent` folder in VSCode
+   - Reopen in container when prompted
+   - Use the integrated terminal to run the agent
 
 ## Option 1: LangGraph + Ollama Custom
 
