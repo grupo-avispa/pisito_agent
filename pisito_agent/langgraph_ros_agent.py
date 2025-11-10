@@ -166,16 +166,20 @@ class RosAgent(Node):
         
         # Retrieve available tools from MCP
         self.get_logger().info('Retrieving tools from MCP servers...')
-        async with self.mcp_client:
-            mcp_tools = await self.mcp_client.list_tools()
-        self.tools = []
-        # Prepare tool definitions for Ollama agent
-        for tool in mcp_tools:
-            self.tools.append({
-                "name": tool.name,
-                "description": tool.description,
-                "inputSchema": tool.inputSchema,
-            })
+        try:
+            self.tools = []
+            async with self.mcp_client:
+                mcp_tools = await self.mcp_client.list_tools()
+                # Prepare tool definitions for Ollama agent
+                for tool in mcp_tools:
+                    self.tools.append({
+                        "name": tool.name,
+                        "description": tool.description,
+                        "inputSchema": tool.inputSchema,
+                    })
+        except Exception as e:
+            self.get_logger().error(f'Error retrieving tools from MCP: {e}')
+        
         self.get_logger().info(f'Retrieved {len(self.tools)} tools from MCP servers')
         
         # Get system prompt template content
