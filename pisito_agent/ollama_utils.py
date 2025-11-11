@@ -109,7 +109,7 @@ class Ollama:
             with open(jinja_template_path, 'r') as f:
                 template_content = f.read()
                 self.template = Template(template_content)
-        else:
+        elif raw and jinja_template_path == '':
             raise ValueError("If raw mode is true, a jinja template must be provided for prompt " + 
                              "formatting. The jinja template only applies in raw mode.")
         
@@ -176,7 +176,11 @@ class Ollama:
             for match in tool_call_matches:
                 parsed_response = match.strip()
                 # Create JSON object from the parsed response
-                action = json.loads(parsed_response)
+                try:
+                    action = json.loads(parsed_response)
+                except json.JSONDecodeError as e:
+                    console.print(f"[red]JSON decode error while parsing tool call: {e}[/red]")
+                    continue
                 # Extract tool name and parameters
                 try:
                     tool_name = action["name"]
@@ -254,12 +258,12 @@ class Ollama:
             )
 
             # Uncomment to see rendered prompt
-            # console.print(Panel(
-            #     prompt,
-            #     title="[cyan bold]RENDERED PROMPT[/cyan bold]",
-            #     border_style="cyan",
-            #     expand=False
-            # ))
+            console.print(Panel(
+                prompt,
+                title="[cyan bold]RENDERED PROMPT[/cyan bold]",
+                border_style="cyan",
+                expand=False
+            ))
 
             response = generate(
                 model=self.model,
@@ -278,7 +282,7 @@ class Ollama:
         else:
             response = generate(
                 model=self.model,
-                prompt=self.state.user_query,
+                prompt=self.state['messages'][-1]['content'],
                 stream=False,
                 raw=self.raw,
                 system=self.system_prompt,
