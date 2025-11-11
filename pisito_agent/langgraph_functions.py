@@ -87,7 +87,11 @@ class LangGraphManager:
         initial_time = time.time()
         
         # Invoke Ollama agent
-        state = await self.ollama_agent.invoke(state=state)
+        try:
+            state = await self.ollama_agent.invoke(state=state)
+        except ValueError as e:
+            self._log(f"Error during Ollama agent invocation: {e}")
+            raise e
         
         step_time = time.time() - initial_time
         self._log(f"LLM response generated in {step_time:.3f} seconds.")
@@ -110,25 +114,27 @@ class LangGraphManager:
         self.steps += 1
         uc = 'finish'
         self._log(f"Managing steps, current step: {self.steps}")
-
-        # Check if the last message contains a tool call
-        if state['messages'] and state['messages'][-1]['role'] == 'tool':
-            # for msg in state['messages'][self.messages_count:]:
-            #     self._log("--"*30)
-            #     self._log(f"\nMessage Role:\n{msg['role']}\nContent:\n{msg['content']}\n" + 
-            #               f"Reasoning:\n{msg['reasoning_content']}\nTool Calls:\n{msg['tool_calls']}")
-            if self.steps < self.max_steps:
-                uc = 'agent'
+        try:
+            # Check if the last message contains a tool call
+            if state['messages'] and state['messages'][-1]['role'] == 'tool':
+                # for msg in state['messages'][self.messages_count:]:
+                #     self._log("--"*30)
+                #     self._log(f"\nMessage Role:\n{msg['role']}\nContent:\n{msg['content']}\n" + 
+                #               f"Reasoning:\n{msg['reasoning_content']}\nTool Calls:\n{msg['tool_calls']}")
+                if self.steps < self.max_steps:
+                    uc = 'agent'
+                else:
+                    self._log("Maximum steps reached, finishing interaction.")
             else:
-                self._log("Maximum steps reached, finishing interaction.")
-        else:
-            self._log("No tool call detected, finishing interaction.")
-            self._log("Final response from assistant:\n" +
-                      f"{state['messages'][-1]['content']}")
-
-        # Update messages count
-        self.messages_count = len(state['messages'])
-        self._log(f"Total messages in conversation: {self.messages_count}")
+                self._log("No tool call detected, finishing interaction.")
+                self._log("Final response from assistant:\n" +
+                        f"{state['messages'][-1]['content']}")
+            # Update messages count
+            self.messages_count = len(state['messages'])
+            self._log(f"Total messages in conversation: {self.messages_count}")
+        except Exception as e:
+            self._log(f"Error in manage_steps: {e}")
+            uc = 'finish'
         return uc
     
     @traceable
