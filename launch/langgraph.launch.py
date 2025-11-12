@@ -99,7 +99,7 @@ def generate_launch_description():
     # Prepare the langgraph agent node
     langgraph_agent_node = Node(
         package='pisito_agent',
-        executable='langgraph_ros_agent',
+        executable='langgraph_ros_home_assistant_agent',
         name='langgraph_agent_node',
         output='screen',
         prefix=[venv_python, ' -u '],

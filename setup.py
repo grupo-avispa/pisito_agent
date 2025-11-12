@@ -12,6 +12,7 @@ setup(
             ['resource/' + package_name]),
         ('lib/' + package_name, [package_name + '/langgraph_base.py']),
         ('lib/' + package_name, [package_name + '/langgraph_home_assistant.py']),
+        ('lib/' + package_name, [package_name + '/langgraph_ros_base.py']),
         ('lib/' + package_name, [package_name + '/ollama_utils.py']),
         ('share/' + package_name, ['.env']),
         ('share/' + package_name, ['package.xml']),
@@ -40,7 +41,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'langgraph_ros_agent = ' + package_name + '.langgraph_ros_agent:main',
+            'langgraph_ros_home_assistant_agent = ' + package_name + '.langgraph_ros_home_assistant_agent:main',
         ],
     },
 )

@@ -1,34 +1,3 @@
-hf_agent:
-  ros__parameters:
-    # Topic names
-    query_topic: "user_query"
-    response_topic: "llm_response"
-    
-    # MCP servers configuration file path
-    mcp_servers: "smolagents_mcp.json"
-    
-    # System prompt template file path
-    system_prompt_file: "system_prompt.jinja"
-    
-    # LLM model name from Hugging Face
-    llm_model: "Qwen/Qwen3-0.6B"
-    
-    # Use 8-bit quantization for the model
-    use_int8: true
-
-    # Tool call regex pattern to extract tool calls from LLM response
-    tool_call_pattern: "<tool_call>(.*?)</tool_call>"
-    
-    # LLM generation parameters
-    max_new_tokens: 256
-    top_k: 10
-    temperature: 0.1
-    repetition_penalty: 1.1
-    do_sample: false
-    return_full_result: false
-    max_steps: 8
-    enable_thinking: false
-
 langgraph_agent_node:
   ros__parameters:
     # Topic names
