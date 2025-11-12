@@ -9,7 +9,7 @@ import asyncio
 import json
 
 # Custom graph manager class
-from pisito_agent.langgraph_functions import LangGraphManager
+from pisito_agent.langgraph_home_assistant import LangGraphManager
 # Custom Ollama agent and message utilities
 from pisito_agent.ollama_utils import Ollama, Messages
 # MCP client for tool retrieval

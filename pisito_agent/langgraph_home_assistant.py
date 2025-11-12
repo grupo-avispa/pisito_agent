@@ -7,10 +7,11 @@ import logging
 from langgraph.graph import START, StateGraph, END
 from langsmith import traceable
 from pisito_agent.ollama_utils import Ollama, Messages
+from pisito_agent.langgraph_base import LangGraphBase
 
-class LangGraphManager:
+class LangGraphManager(LangGraphBase):
     """
-    Manager class for LangGraph-based conversational AI.
+    Manager class for LangGraph-based home assistant.
 
     This class encapsulates all functionality for the LangGraph workflow,
     including LLM response generation, step management, and interaction finalization.
@@ -47,29 +48,11 @@ class LangGraphManager:
         Returns:
             None
         """
-        self.graph = None
-        self.logger = logger
-        self.ollama_agent = ollama_agent
-        self.steps = 0
-        self.messages_count = 0
-        self.max_steps = max_steps
+        super().__init__(logger=logger,
+                           ollama_agent=ollama_agent, 
+                           max_steps=max_steps)
         if self.ollama_agent is None:
             raise ValueError("Ollama agent instance must be provided to LangGraphManager.")
-
-    def _log(self, msg: str) -> None:
-        """
-        Log helper. Uses ROS2 logger if available, else Python logging.
-
-        Parameters:
-            msg (str): Message to log.
-
-        Returns:
-            None
-        """
-        if self.logger is not None:
-            self.logger.info(msg)
-        else:
-            logging.info(msg)
 
     @traceable
     async def query_response(self, state: Messages) -> Messages:
@@ -190,84 +173,3 @@ class LangGraphManager:
 
         # Compile the graph workflow
         self.graph = workflow.compile()
-
-
-# Uncomment the following code to run a standalone test of the langgraph manager with ollama custom agent.
-# IMPORTANT: 
-#       - Make sure to have an Ollama server running and accessible.
-#       - Make sure to have an MCP server running and accessible.
-#       - Fake fake_mcp_server.py is provided in case you need a mock server.
-#       - Update the mcp_config with your MCP server details if using a real server.
-#       - max_steps defines the maximum number of steps for the conversation.
-#       - qwen3:0.6b model is used in this example, ensure it's available on your Ollama server.
-#       - If want to inspect traces export your LANGGRAPH_SMITH_API_KEY and LANGCHAIN_TRACING_V2=true env variables.
-
-# async def main():
-#     from fastmcp import Client
-
-#     mcp_config = {
-#         "mcpServers": {
-#             "fake_mcp_server": {"url": "http://localhost:3002/mcp"}
-#         }
-#     }
-
-#     max_steps = 5
-
-#     system_prompt = ("You are a polite and efficient home assistant."
-#     "You can control home devices such as lights, doors, blinds, temperature, music, and presence sensors using the provided tools."
-#     "If a user asks for an action, respond only by calling the right tool in JSON format inside <tool_call> tags."
-#     "When the task is done, return the final answer.")
-    
-#     async with Client(mcp_config) as mcp_client:
-#         tools = await mcp_client.list_tools()
-#         tools_schemas = []
-#         for tool in tools:
-#             tools_schemas.append({
-#                 "name": tool.name,
-#                 "description": tool.description,
-#                 "inputSchema": tool.inputSchema,
-#             })
-
-#         ollama = Ollama(
-#             model='qwen3:0.6b',
-#             tools=tools_schemas,
-#             tool_call_pattern="<tool_call>(.*?)</tool_call>",
-#             mcp_client=mcp_client,
-#             think=False,
-#             raw=True,
-#             temperature=0.0,
-#             jinja_template_path='../templates/qwen3.jinja',
-#             system_prompt=system_prompt,
-#             debug=True
-#         )
-
-#     manager = LangGraphManager(
-#         ollama_agent=ollama,
-#         max_steps=max_steps
-#     )
-
-#     await manager.make_graph()
-    
-#     print("LangGraph workflow successfully created and compiled.")
-#     initial_state: Messages = {
-#         'messages': [
-#             ollama.create_message(
-#                 role='system',
-#                 content=system_prompt
-#             )
-#         ]
-#     }
-#     initial_state['messages'].append(
-#         ollama.create_message(
-#             role='user',
-#             content="Please turn on the living room lights and unlock the garage door."
-#         )
-#     )
-#     result = await manager.graph.ainvoke(initial_state)
-
-#     print(result)
-
-# if __name__ == "__main__":
-#     import asyncio
-
-#     asyncio.run(main())

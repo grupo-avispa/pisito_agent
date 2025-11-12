@@ -10,9 +10,8 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
-        ('lib/' + package_name, [package_name + '/smolagent_custom_agent.py']),
-        ('lib/' + package_name, [package_name + '/smolagent_custom_model.py']),
-        ('lib/' + package_name, [package_name + '/langgraph_functions.py']),
+        ('lib/' + package_name, [package_name + '/langgraph_base.py']),
+        ('lib/' + package_name, [package_name + '/langgraph_home_assistant.py']),
         ('lib/' + package_name, [package_name + '/ollama_utils.py']),
         ('share/' + package_name, ['.env']),
         ('share/' + package_name, ['package.xml']),
@@ -41,7 +40,6 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'smolagent_ros_agent = ' + package_name + '.smolagent_ros_agent:main',
             'langgraph_ros_agent = ' + package_name + '.langgraph_ros_agent:main',
         ],
     },
