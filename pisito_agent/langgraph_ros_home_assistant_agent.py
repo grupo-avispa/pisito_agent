@@ -1,5 +1,5 @@
 """
-ROS2 publisher/subscriber for LangGraph-based conversational AI.
+ROS2 server for LangGraph-based conversational AI.
 """
 
 # Time import for measuring LLM call duration
@@ -12,18 +12,17 @@ from pisito_agent.ollama_utils import Messages
 # Base class import
 from pisito_agent.langgraph_ros_base import LangGraphRosBase
 
-# ROS2 imports for subscriber and publisher implementation
+# ROS2 imports for subscriber and server implementation
 import rclpy
 from rclpy.executors import MultiThreadedExecutor, ExternalShutdownException
 from rclpy.callback_groups import ReentrantCallbackGroup
-from std_msgs.msg import String
+from llm_interactions_msgs.srv import UserQueryResponse
 
 # ============= ROS2 SERVER =============
 
-
 class RosHomeAssistantAgent(LangGraphRosBase):
     """
-    ROS2 publisher/subscriber for LangGraph-based conversational AI.
+    ROS2 server for LangGraph-based conversational AI.
     This class sets up a ROS2 node that listens for user queries, processes them
     using a LangGraph workflow, and publishes the generated responses.
     This implements a home assistant use case.
@@ -53,39 +52,38 @@ class RosHomeAssistantAgent(LangGraphRosBase):
 
         # Create the subscriber to listen for user queries
         self.group = ReentrantCallbackGroup()
-        self.query_sub = self.create_subscription(
-            String,
-            self.query_topic,
-            self.agent_callback,
-            10,
-            callback_group=self.group)
-        # Create the publisher to send agent responses
-        self.response_pub = self.create_publisher(
-            String,
-            self.response_topic,
-            10,
-            callback_group=self.group)
+        self.agent_srv = self.create_service(
+            srv_type=UserQueryResponse,
+            srv_name=self.service_name,
+            callback=self.agent_callback,
+            callback_group=self.group
+        )
 
         self.get_logger().info('langgraph_agent_node node initialized.')
 
 
-    # ============= SUBSCRIPTION CALLBACKS =============
+    # ============= SERVICE CALLBACKS =============
 
-    def agent_callback(self, msg: String) -> None:
+    def agent_callback(self, request, response):
         """
         Callback function for processing user queries.
 
-        Receives a user query message, processes it using the agent graph,
-        and publishes the generated response.
+        Receives a user request, processes it using the agent graph,
+        and returns the generated response.
 
         Parameters:
-            msg (String): The incoming user query message.
+            request: The UserQueryResponse request containing user query details.
+            response: The UserQueryResponse response to be populated with the agent's reply.
         Returns:
-            None
+            The populated response with the agent's generated reply.
         """
 
-        user_query = msg.data
-        self.get_logger().info(f'Received user query: {user_query}')
+        user_query = request.user_query
+        user_name = request.user_name
+        if user_name:
+            user_query = f'User named {user_name} says: {user_query}'
+        
+        self.get_logger().info(f'Received user query:\n{user_query}')
 
         init_time = time.time()
 
@@ -113,10 +111,9 @@ class RosHomeAssistantAgent(LangGraphRosBase):
         self.get_logger().info(f'Agent processing time: {time.time() - init_time:.3f} seconds')
         self.get_logger().info(f'Generated response: {result["messages"][-1].get("content", "")}')
 
-        # Publish the response
-        response_msg = String()
-        response_msg.data = result['messages'][-1].get('content', '')
-        self.response_pub.publish(response_msg)
+        # rreturn the response to the user request
+        response.response_text = result['messages'][-1].get('content', '')
+        return response
 
 
 def main(args=None) -> None:

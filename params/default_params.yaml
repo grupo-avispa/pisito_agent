@@ -1,8 +1,7 @@
 langgraph_agent_node:
   ros__parameters:
-    # Topic names
-    query_topic: "user_query"
-    response_topic: "llm_response"
+    # Server name
+    service_name: "agent_service"
     
     # MCP servers configuration file path
     mcp_servers: "langgraph_mcp.json"
@@ -25,7 +24,7 @@ langgraph_agent_node:
     temperature: 0.0
     repeat_penalty: 1.1
     top_k: 10
-    top_p: 0.25
+    top_p: 1.0
     num_ctx: 8192
     num_predict: 128
     

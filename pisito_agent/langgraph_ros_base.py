@@ -1,5 +1,5 @@
 """
-ROS2 publisher/subscriber for LangGraph-based conversational AI.
+ROS2 server for LangGraph-based conversational AI.
 """
 
 # asyncio for async operations
@@ -21,7 +21,7 @@ from rclpy.node import Node
 # ============= ROS2 NODE =============
 class LangGraphRosBase(Node):
     """
-    ROS2 publisher/subscriber for LangGraph-based conversational AI.
+    ROS2 server for LangGraph-based conversational AI.
     This class sets up a ROS2 node that listens for user queries, processes them
     using a LangGraph workflow, and publishes the generated responses.
     Attributes:
@@ -161,17 +161,11 @@ class LangGraphRosBase(Node):
             None
         """
         # Declare and retrieve topic parameters
-        self.declare_parameter('query_topic', 'user_query')
-        self.query_topic = self.get_parameter(
-            'query_topic').get_parameter_value().string_value
+        self.declare_parameter('service_name', 'agent_service')
+        self.service_name = self.get_parameter(
+            'service_name').get_parameter_value().string_value
         self.get_logger().info(
-            f'The parameter query_topic is set to: [{self.query_topic}]')
-        
-        self.declare_parameter('response_topic', 'llm_response')
-        self.response_topic = self.get_parameter(
-            'response_topic').get_parameter_value().string_value
-        self.get_logger().info(
-            f'The parameter response_topic is set to: [{self.response_topic}]')
+            f'The parameter service_name is set to: [{self.service_name}]')
 
         # Declare and retrieve MCP servers parameter
         self.declare_parameter('mcp_servers', 'mcp.json')
