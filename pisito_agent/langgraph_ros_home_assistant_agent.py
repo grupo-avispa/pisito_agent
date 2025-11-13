@@ -8,9 +8,9 @@ import time
 # Custom graph manager class
 from pisito_agent.langgraph_home_assistant import LangGraphManager
 # Custom Ollama agent and message utilities
-from pisito_agent.ollama_utils import Messages
+from langgraph_base_ros.ollama_utils import Messages
 # Base class import
-from pisito_agent.langgraph_ros_base import LangGraphRosBase
+from langgraph_base_ros.langgraph_ros_base import LangGraphRosBase
 
 # ROS2 imports for subscriber and server implementation
 import rclpy
@@ -48,7 +48,7 @@ class RosHomeAssistantAgent(LangGraphRosBase):
                                               max_steps=self.max_steps)
         
         # Build the LangGraph workflow
-        self.build_graph(self.graph_manager)
+        self.build_graph()
 
         # Create the subscriber to listen for user queries
         self.group = ReentrantCallbackGroup()
@@ -60,6 +60,23 @@ class RosHomeAssistantAgent(LangGraphRosBase):
         )
 
         self.get_logger().info('langgraph_agent_node node initialized.')
+    
+    def build_graph(self) -> None:
+        """
+        Initialize and compile the LangGraph workflow.
+        Parameters:
+            graph_manager (LangGraphManager): The LangGraph manager instance to use.
+        Returns:
+            None
+        """
+        # Initialize and compile the LangGraph workflow
+        try:
+            self.loop.run_until_complete(self.graph_manager.make_graph())
+        except Exception as e:
+            self.get_logger().error(f'Failed to create LangGraph workflow: {e}')
+            raise
+
+        self.get_logger().info('LangGraphManager graph created successfully...')
 
 
     # ============= SERVICE CALLBACKS =============

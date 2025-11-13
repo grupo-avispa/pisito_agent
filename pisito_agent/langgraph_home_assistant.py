@@ -6,8 +6,8 @@ import time
 import logging
 from langgraph.graph import START, StateGraph, END
 from langsmith import traceable
-from pisito_agent.ollama_utils import Ollama, Messages
-from pisito_agent.langgraph_base import LangGraphBase
+from langgraph_base_ros.ollama_utils import Ollama, Messages
+from langgraph_base_ros.langgraph_base import LangGraphBase
 
 class LangGraphManager(LangGraphBase):
     """

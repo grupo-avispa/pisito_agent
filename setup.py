@@ -10,10 +10,7 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
-        ('lib/' + package_name, [package_name + '/langgraph_base.py']),
         ('lib/' + package_name, [package_name + '/langgraph_home_assistant.py']),
-        ('lib/' + package_name, [package_name + '/langgraph_ros_base.py']),
-        ('lib/' + package_name, [package_name + '/ollama_utils.py']),
         ('share/' + package_name, ['.env']),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'),
