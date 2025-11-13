@@ -258,12 +258,12 @@ class Ollama:
             )
 
             # Uncomment to see rendered prompt
-            console.print(Panel(
-                prompt,
-                title="[cyan bold]RENDERED PROMPT[/cyan bold]",
-                border_style="cyan",
-                expand=False
-            ))
+            # console.print(Panel(
+            #     prompt,
+            #     title="[cyan bold]RENDERED PROMPT[/cyan bold]",
+            #     border_style="cyan",
+            #     expand=False
+            # ))
 
             response = generate(
                 model=self.model,
