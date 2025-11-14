@@ -2,7 +2,7 @@ import pytest
 import logging
 from unittest.mock import Mock, AsyncMock, patch
 from pisito_agent.langgraph_home_assistant import LangGraphManager
-from pisito_agent.ollama_utils import Ollama, Messages, Message
+from langgraph_base_ros.ollama_utils import Ollama, Messages, Message
 
 
 # --------------------------------------------------
