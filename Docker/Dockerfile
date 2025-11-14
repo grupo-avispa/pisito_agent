@@ -41,6 +41,10 @@ RUN apt update && apt install -y ros-${ROS_DISTRO}-nav2-common \
 # -------- CONFIGURE WORKSPACE --------
 WORKDIR /ros2_ws/src
 
+# Clone dependencies
+RUN git clone https://github.com/grupo-avispa/llm_interactions_msgs.git
+RUN git clone https://github.com/grupo-avispa/langgraph_base_ros.git
+
 # Copy the entire package
 COPY ./ /ros2_ws/src/pisito_agent/
 
@@ -53,10 +57,11 @@ ENV PATH="/venv/bin:$PATH"
 # Install Python dependencies
 WORKDIR /ros2_ws/src/pisito_agent
 RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install empy catkin_pkg lark
 
 # Compile the package
 WORKDIR /ros2_ws
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build 
 
 # -------- ENTRYPOINT --------
 # Copy the entrypoint script that will automatically "source" the environment
