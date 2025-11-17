@@ -16,7 +16,7 @@
   ],
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
-    "python.defaultInterpreterPath": "/venv/bin/python",
+    "python.defaultInterpreterPath": "/usr/bin/python",
     "editor.fontSize": 14,
     "editor.formatOnSave": false,
     "workbench.colorTheme": "Default Dark+",

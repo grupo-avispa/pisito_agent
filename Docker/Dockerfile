@@ -1,5 +1,5 @@
-# Base image with CUDA and Ubuntu 24.04
-FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu24.04
+# Base image with ROS 2 Jazzy installed
+FROM "ros:jazzy-ros-base"
 
 # -------- BASIC CONFIGURATION --------
 ENV DEBIAN_FRONTEND=noninteractive
@@ -10,30 +10,8 @@ RUN apt-get update && apt-get install -y \
     && apt autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure locale
-RUN locale-gen en_US en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
 
-# -------- INSTALL ROS 2 JAZZY --------
-# Install ROS
-ENV ROS_DISTRO jazzy
-# desktop or ros-base
-ARG INSTALL_PACKAGE=desktop
-
-RUN apt update -q && \
-    apt install -y curl gnupg2 lsb-release && \
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
-    apt update -q && \
-    apt install -y ros-${ROS_DISTRO}-${INSTALL_PACKAGE} \
-    python3-argcomplete \
-    python3-colcon-common-extensions \
-    python3-rosdep python3-vcstool && \
-    rosdep init && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt update && apt install -y ros-${ROS_DISTRO}-nav2-common \
+RUN apt update && apt install -y ros-jazzy-nav2-common \
     && apt autoclean -y \
     && apt autoremove -y \
     && rm -rf /var/lib/apt/lists/*
@@ -51,7 +29,7 @@ COPY ./ /ros2_ws/src/pisito_agent/
 WORKDIR /ros2_ws
 
 # Create Python virtual environment
-RUN python3 -m venv /venv
+RUN python3 -m venv /venv --system-site-packages
 ENV PATH="/venv/bin:$PATH"
 
 # Install Python dependencies

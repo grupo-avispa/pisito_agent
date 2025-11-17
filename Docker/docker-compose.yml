@@ -5,13 +5,6 @@ services:
       dockerfile: ./Docker/Dockerfile
     container_name: pisito_agent_container
     image: pisito_agent:latest
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     environment:
       - ROS_DOMAIN_ID=11
     volumes:
