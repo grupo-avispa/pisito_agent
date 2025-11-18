@@ -12,15 +12,17 @@ The package includes a complete home assistant implementation as a reference use
 
 ### Core Components
 
-- **Base Classes**: Abstract base classes for creating custom agents
-  - `LangGraphBase`: Base class for LangGraph workflow management
-  - `LangGraphRosBase`: Base class for ROS2 integration
-  
-- **Use Case Implementations**: Concrete implementations for specific scenarios
-  - `LangGraphManager`: Home assistant workflow implementation
-  - `RosHomeAssistantAgent`: Home assistant ROS2 node
+This package inherits from base classes provided by `langgraph_base_ros`:
 
-- **Utilities**:
+- **Base Classes** (from `langgraph_base_ros`):
+  - `LangGraphBase`: Abstract base class for LangGraph workflow management
+  - `LangGraphRosBase`: Abstract base class for ROS2 integration with async support
+
+- **Home Assistant Implementation**:
+  - `LangGraphManager`: Concrete workflow implementation for home automation
+  - `RosHomeAssistantAgent`: ROS2 node implementation for home assistant service
+
+- **Utilities** (from `langgraph_base_ros`):
   - `Ollama`: Client for Ollama LLM server with MCP integration
   - MCP Client: Tool retrieval and execution via Model Context Protocol
   - Prompt System: Jinja2 templates for customizable prompts
@@ -50,13 +52,11 @@ pisito_agent/
 │   ├── system_prompt.jinja         # System prompt template
 │   └── qwen3.jinja                 # Chat template for Qwen3
 ├── pisito_agent/
-│   ├── langgraph_base.py           # Base class for LangGraph workflows
-│   ├── langgraph_ros_base.py       # Base class for ROS2 integration
 │   ├── langgraph_home_assistant.py # Home assistant workflow implementation
 │   ├── langgraph_ros_home_assistant_agent.py # Home assistant ROS2 node
-│   ├── ollama_utils.py             # Ollama client utilities
 │   └── fake_mcp_server.py          # Test MCP server
 ├── .env                            # Environment variables (LangSmith)
+├── uv/                           # UV folder for dependencies
 ├── package.xml
 └── setup.py
 ```
@@ -87,6 +87,11 @@ pisito_agent/
    python -m venv agent-venv
    source agent-venv/bin/activate
    pip install -r requirements.txt
+   ```
+   ```bash
+   cd uv
+   uv sync
+   source .venv/bin/activate
    ```
 
 4. **Environment variables** (optional, for LangSmith tracing):
@@ -119,6 +124,12 @@ Alternatively, you can run the agent using Docker, which includes all dependenci
    - Open the `pisito_agent` folder in VSCode
    - Reopen in container when prompted
    - Use the integrated terminal to run the agent
+   - Alternatively, run the container directly:
+    ```bash
+        first time: docker compose run pisito_agent
+        following terminals: docker exec -it <IMAGE-ID> bash
+    ```
+
 
 ## Base Classes
 
@@ -154,114 +165,6 @@ Abstract base class for ROS2 integration. Handles ROS2 parameter management, Oll
 - MCP client configuration and tool retrieval
 - Abstract `agent_callback()` method for custom service handling
 - Persistent asyncio event loop management
-
-**Usage**:
-```python
-from pisito_agent.langgraph_ros_base import LangGraphRosBase
-
-class CustomRosAgent(LangGraphRosBase):
-    def __init__(self):
-        super().__init__()
-        # Initialize your custom workflow manager
-        self.graph_manager = CustomWorkflow(...)
-        self.build_graph(self.graph_manager)
-        
-        # Create your service/subscriber/etc.
-        self.create_service(...)
-    
-    def agent_callback(self, request, response):
-        # Handle incoming requests
-        return response
-```
-
-## Creating Custom Use Cases
-
-### Step 1: Define Your Workflow
-
-Create a class inheriting from `LangGraphBase`:
-
-```python
-from pisito_agent.langgraph_base import LangGraphBase
-from langgraph.graph import START, StateGraph, END
-
-class MyCustomWorkflow(LangGraphBase):
-    async def my_custom_node(self, state):
-        # Your custom logic
-        return state
-    
-    def my_decision_function(self, state):
-        # Decision logic for conditional edges
-        return "next_node"
-    
-    async def make_graph(self):
-        workflow = StateGraph(Messages)
-        
-        # Add nodes
-        workflow.add_node('my_node', self.my_custom_node)
-        
-        # Add edges
-        workflow.add_edge(START, 'my_node')
-        workflow.add_conditional_edges(
-            'my_node',
-            self.my_decision_function,
-            {'next_node': 'my_node', 'finish': END}
-        )
-        
-        self.graph = workflow.compile()
-```
-
-### Step 2: Create ROS2 Integration
-
-Create a class inheriting from `LangGraphRosBase`:
-
-```python
-from pisito_agent.langgraph_ros_base import LangGraphRosBase
-from your_msgs.srv import YourServiceType
-
-class MyCustomAgent(LangGraphRosBase):
-    def __init__(self):
-        super().__init__()
-        
-        # Initialize your workflow
-        self.graph_manager = MyCustomWorkflow(
-            logger=self.get_logger(),
-            ollama_agent=self.ollama_agent,
-            max_steps=self.max_steps
-        )
-        self.build_graph(self.graph_manager)
-        
-        # Create your service
-        self.srv = self.create_service(
-            YourServiceType,
-            'your_service_name',
-            self.agent_callback
-        )
-    
-    def agent_callback(self, request, response):
-        # Process request using your workflow
-        result = self.loop.run_until_complete(
-            self.graph_manager.graph.ainvoke(initial_state)
-        )
-        response.field = result['messages'][-1]['content']
-        return response
-```
-
-### Step 3: Create Launch File
-
-```python
-from launch import LaunchDescription
-from launch_ros.actions import Node
-
-def generate_launch_description():
-    return LaunchDescription([
-        Node(
-            package='pisito_agent',
-            executable='your_custom_agent_executable',
-            name='your_agent_node',
-            parameters=[your_params_file]
-        )
-    ])
-```
 
 ## Home Assistant Use Case (Reference Implementation)
 
