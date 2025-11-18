@@ -136,7 +136,7 @@ class LangGraphManager(LangGraphBase):
             self._log("Maximum steps reached during finalization.")
         else:
             self._log("Agent reached final state before maximum steps.")
-        
+        self.steps = 0
         self.ollama_agent.reset_memory()
         return state
 
