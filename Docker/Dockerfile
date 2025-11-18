@@ -36,7 +36,7 @@ ENV PATH="/venv/bin:$PATH"
 WORKDIR /ros2_ws/src/pisito_agent
 RUN pip install --upgrade pip && pip install -r requirements.txt
 RUN pip install empy catkin_pkg lark
-
+RUN rm pyproject.toml uv.lock
 # Compile the package
 WORKDIR /ros2_ws
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build 
